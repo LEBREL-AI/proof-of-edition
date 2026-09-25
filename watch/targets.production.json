@@ -1,0 +1,426 @@
+{
+  "targets": [
+    {
+      "name": "deepseek/api",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-flash",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "notes": "the lab's own API; deepseek-flash is the current V4.1 Flash alias; thinking disabled so answers are comparable; floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.40 exact, 0.62 prefix, sampled test agrees",
+      "body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "thresholds": {
+        "min_exact_rate": 0.3,
+        "min_prefix_agreement": 0.5
+      },
+      "fingerprint": true,
+      "fingerprint_anchor": true
+    },
+    {
+      "name": "deepseek/api-thinking",
+      "model": "deepseek-v4.1-flash/thinking",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-flash",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "the lab's own API in its native mode: thinking on at high effort, as a client gets it by default; its own family so it is compared with itself over time; floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.15 exact, 0.29 prefix, sampled test agrees; in reasoning mode the temperature-0 answers vary with the chain of thought, so the deterministic test is weak and the sampled test carries the verdict",
+      "thresholds": {
+        "min_exact_rate": 0.1,
+        "min_prefix_agreement": 0.2
+      }
+    },
+    {
+      "name": "deepseek/api-pro",
+      "model": "deepseek-v4-pro",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-v4-pro",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "notes": "DeepSeek V4 Pro on the lab's own API, thinking disabled so answers are comparable; floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.45 exact, 0.64 prefix, sampled test agrees",
+      "thresholds": {
+        "min_exact_rate": 0.3,
+        "min_prefix_agreement": 0.5
+      },
+      "fingerprint": true,
+      "fingerprint_anchor": true
+    },
+    {
+      "name": "deepseek/api-pro-thinking",
+      "model": "deepseek-v4-pro/thinking",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-v4-pro",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "DeepSeek V4 Pro in its native mode (thinking on, effort high); floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.20 exact, 0.37 prefix, sampled test agrees; in reasoning mode the temperature-0 answers vary with the chain of thought, so the deterministic test is weak and the sampled test carries the verdict",
+      "thresholds": {
+        "min_exact_rate": 0.1,
+        "min_prefix_agreement": 0.2
+      }
+    },
+    {
+      "name": "lebrel/route-flash",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://api.lebrel.ai/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "LEBREL_WATCH_API_KEY",
+      "body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "notes": "Lebrel's own route, called like a customer: the answer must match DeepSeek's own API and every receipt must verify",
+      "fingerprint": true,
+      "battery": false,
+      "route_model_id": "deepseek/deepseek-v4.1-flash",
+      "receipt_public_key": "f7dd66b73acc863219b339c789fd25e63fa75304365eaa6a0c7a9080b7dbfb87",
+      "receipt_origin": "https://router.lebrel.ai",
+      "concurrency": 2
+    },
+    {
+      "name": "lebrel/route-pro",
+      "model": "deepseek-v4-pro",
+      "base_url": "https://api.lebrel.ai/v1",
+      "upstream_model": "deepseek/deepseek-v4-pro",
+      "api_key_env": "LEBREL_WATCH_API_KEY",
+      "body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "notes": "Lebrel's own route, called like a customer: the answer must match DeepSeek's own API and every receipt must verify",
+      "fingerprint": true,
+      "battery": false,
+      "route_model_id": "deepseek/deepseek-v4-pro",
+      "receipt_public_key": "f7dd66b73acc863219b339c789fd25e63fa75304365eaa6a0c7a9080b7dbfb87",
+      "receipt_origin": "https://router.lebrel.ai",
+      "concurrency": 2
+    },
+    {
+      "name": "openrouter/fireworks",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "reasoning": {
+          "enabled": false
+        },
+        "provider": {
+          "order": [
+            "fireworks"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": true
+        }
+      },
+      "notes": "fireworks through OpenRouter, pinned to that host",
+      "fingerprint": true,
+      "battery": false,
+      "declared_quantization": null,
+      "concurrency": 1,
+      "overrides": {
+        "top_logprobs": 5
+      },
+      "pace_seconds": 2.0
+    },
+    {
+      "name": "openrouter/together",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "reasoning": {
+          "enabled": false
+        },
+        "provider": {
+          "order": [
+            "together"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": true
+        }
+      },
+      "notes": "together through OpenRouter, pinned to that host",
+      "fingerprint": true,
+      "battery": false,
+      "declared_quantization": null,
+      "concurrency": 2
+    },
+    {
+      "name": "openrouter/streamlake-fp8",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "reasoning": {
+          "enabled": false
+        },
+        "provider": {
+          "order": [
+            "streamlake/fp8"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": true
+        }
+      },
+      "notes": "streamlake/fp8 through OpenRouter, pinned to that host",
+      "fingerprint": true,
+      "battery": false,
+      "declared_quantization": "fp8",
+      "concurrency": 2
+    },
+    {
+      "name": "openrouter/sail-research-fp4",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "reasoning": {
+          "enabled": false
+        },
+        "provider": {
+          "order": [
+            "sail-research/fp4"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": true
+        }
+      },
+      "notes": "sail-research/fp4 through OpenRouter, pinned to that host",
+      "fingerprint": true,
+      "battery": false,
+      "declared_quantization": "fp4",
+      "concurrency": 2
+    },
+    {
+      "name": "openrouter/streamlake-fp8-pro",
+      "model": "deepseek-v4-pro",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4-pro",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "reasoning": {
+          "enabled": false
+        },
+        "provider": {
+          "order": [
+            "streamlake/fp8"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": true
+        }
+      },
+      "notes": "streamlake/fp8 through OpenRouter, pinned to that host",
+      "fingerprint": true,
+      "battery": false,
+      "declared_quantization": "fp8",
+      "concurrency": 1,
+      "pace_seconds": 6.5
+    },
+    {
+      "name": "openrouter/novita-fp8-pro",
+      "model": "deepseek-v4-pro",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4-pro",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "reasoning": {
+          "enabled": false
+        },
+        "provider": {
+          "order": [
+            "novita/fp8"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": true
+        }
+      },
+      "notes": "novita/fp8 through OpenRouter, pinned to that host",
+      "fingerprint": true,
+      "battery": false,
+      "declared_quantization": "fp8",
+      "concurrency": 1,
+      "pace_seconds": 6.5
+    },
+    {
+      "name": "zai/api-flash",
+      "model": "glm-5.3-flash",
+      "base_url": "https://api.z.ai/api/paas/v4",
+      "upstream_model": "glm-5.3-flash",
+      "api_key_env": "ZAI_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      },
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "Z.ai's own API; reasoning cannot be switched off, effort low keeps answers comparable; no logprobs, so the battery is the only check; fingerprint by sampling (8 answers per prompt, every 1 h) because the lab returns no token probabilities; deterministic thresholds calibrated 25 Sep 2026 (GLM is not deterministic at temperature 0: exact 0.10)",
+      "fingerprint": true,
+      "battery": true,
+      "fingerprint_anchor": true,
+      "sampled": true,
+      "samples": 8,
+      "every_hours": 1,
+      "sampled_max_tokens": 48,
+      "thresholds": {
+        "min_exact_rate": 0.0,
+        "min_prefix_agreement": 0.14
+      },
+      "concurrency": 4
+    },
+    {
+      "name": "zai/api",
+      "model": "glm-5.3",
+      "base_url": "https://api.z.ai/api/paas/v4",
+      "upstream_model": "glm-5.3",
+      "api_key_env": "ZAI_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      },
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "Z.ai's own API for GLM-5.3; reasoning cannot be switched off, effort low; no logprobs, so the battery is the only check; fingerprint by sampling (6 answers per prompt, every 6 h) because the lab returns no token probabilities; deterministic thresholds calibrated 25 Sep 2026 (GLM is not deterministic at temperature 0: exact 0.10)",
+      "fingerprint": true,
+      "battery": true,
+      "fingerprint_anchor": true,
+      "sampled": true,
+      "samples": 6,
+      "every_hours": 6,
+      "sampled_max_tokens": 48,
+      "thresholds": {
+        "min_exact_rate": 0.0,
+        "min_prefix_agreement": 0.17
+      },
+      "concurrency": 4
+    },
+    {
+      "name": "moonshot/api",
+      "model": "kimi-k3",
+      "base_url": "https://api.moonshot.ai/v1",
+      "upstream_model": "kimi-k3",
+      "api_key_env": "MOONSHOT_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      },
+      "overrides": {
+        "max_tokens": 2048,
+        "temperature": 1,
+        "top_p": 0.95
+      },
+      "notes": "Moonshot's own API; reasoning cannot be switched off, effort low; logprobs refused by the API, so the battery is the only check; the API accepts temperature 1 and top_p 0.95 only, so deterministic probes run sampled and their thresholds come from calibration; fingerprint by sampling (6 answers per prompt, every 6 h) because the lab returns no token probabilities",
+      "fingerprint": true,
+      "battery": true,
+      "fingerprint_anchor": true,
+      "sampled": true,
+      "samples": 6,
+      "every_hours": 6,
+      "sampled_max_tokens": 96,
+      "thresholds": {
+        "min_exact_rate": 0.0,
+        "min_prefix_agreement": 0.1
+      },
+      "concurrency": 4
+    },
+    {
+      "name": "lebrel/route-glm-flash",
+      "model": "glm-5.3-flash",
+      "base_url": "https://api.lebrel.ai/v1",
+      "upstream_model": "z-ai/glm-5.3-flash",
+      "api_key_env": "LEBREL_WATCH_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      },
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "Lebrel's own route, called like a customer: the answer must match Z.ai's own API and every receipt must verify; fingerprint by sampling (8 answers per prompt, every 1 h) because the lab returns no token probabilities; deterministic thresholds calibrated 25 Sep 2026 (GLM is not deterministic at temperature 0: exact 0.10)",
+      "fingerprint": true,
+      "battery": true,
+      "route_model_id": "z-ai/glm-5.3-flash",
+      "receipt_public_key": "f7dd66b73acc863219b339c789fd25e63fa75304365eaa6a0c7a9080b7dbfb87",
+      "receipt_origin": "https://router.lebrel.ai",
+      "concurrency": 4,
+      "sampled": true,
+      "samples": 8,
+      "every_hours": 1,
+      "sampled_max_tokens": 48,
+      "thresholds": {
+        "min_exact_rate": 0.0,
+        "min_prefix_agreement": 0.14
+      }
+    },
+    {
+      "name": "lebrel/route-glm",
+      "model": "glm-5.3",
+      "base_url": "https://api.lebrel.ai/v1",
+      "upstream_model": "z-ai/glm-5.3",
+      "api_key_env": "LEBREL_WATCH_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      },
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "Lebrel's own route, called like a customer: the answer must match Z.ai's own API and every receipt must verify; fingerprint by sampling (6 answers per prompt, every 6 h) because the lab returns no token probabilities; deterministic thresholds calibrated 25 Sep 2026 (GLM is not deterministic at temperature 0: exact 0.10)",
+      "fingerprint": true,
+      "battery": true,
+      "route_model_id": "z-ai/glm-5.3",
+      "receipt_public_key": "f7dd66b73acc863219b339c789fd25e63fa75304365eaa6a0c7a9080b7dbfb87",
+      "receipt_origin": "https://router.lebrel.ai",
+      "concurrency": 4,
+      "sampled": true,
+      "samples": 6,
+      "every_hours": 6,
+      "sampled_max_tokens": 48,
+      "thresholds": {
+        "min_exact_rate": 0.0,
+        "min_prefix_agreement": 0.17
+      }
+    },
+    {
+      "name": "lebrel/route-kimi",
+      "model": "kimi-k3",
+      "base_url": "https://api.lebrel.ai/v1",
+      "upstream_model": "moonshotai/kimi-k3",
+      "api_key_env": "LEBREL_WATCH_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      },
+      "overrides": {
+        "max_tokens": 2048,
+        "temperature": 1,
+        "top_p": 0.95
+      },
+      "notes": "Lebrel's own route, called like a customer: the answer must match Moonshot's own API and every receipt must verify; the API accepts temperature 1 and top_p 0.95 only, so deterministic probes run sampled and their thresholds come from calibration; fingerprint by sampling (6 answers per prompt, every 6 h) because the lab returns no token probabilities",
+      "fingerprint": true,
+      "battery": true,
+      "route_model_id": "moonshotai/kimi-k3",
+      "receipt_public_key": "f7dd66b73acc863219b339c789fd25e63fa75304365eaa6a0c7a9080b7dbfb87",
+      "receipt_origin": "https://router.lebrel.ai",
+      "concurrency": 4,
+      "sampled": true,
+      "samples": 6,
+      "every_hours": 6,
+      "sampled_max_tokens": 96,
+      "thresholds": {
+        "min_exact_rate": 0.0,
+        "min_prefix_agreement": 0.1
+      }
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "proof-of-edition"
+version = "0.1.0"
+authors = [{ name = "Lebrel" }]
+description = "Proof of Edition: verify that an inference API serves the model edition it claims (fingerprints, signed manifests and receipts, re-execution audits)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = ["pynacl>=1.5"]
+
+[project.optional-dependencies]
+publish = ["boto3>=1.34"]
+reference = ["tokenizers>=0.20", "modal>=1.5"]
+
+[project.urls]
+Homepage = "https://lebrel.ai"
+Repository = "https://github.com/LEBREL-AI/proof-of-edition"
+Watch = "https://models.lebrel.ai/watch"
+Documentation = "https://lebrel.ai/docs#verification"
+
+[project.scripts]
+poe-verify-fingerprint = "fingerprint.verify:main"
+poe-verify-receipt = "receipts.verify_receipt:main"
+poe-audit = "audit.reexecute:main"
+poe-build-manifest = "manifest.build_manifest:main"
+poe-check-manifest = "registry.check_manifest:main"
+poe-registry-record = "registry.record:main"
+poe-registry-log = "registry.log:main"
+poe-registry-publish = "registry.publish:main"
+poe-registry-mirror = "registry.mirror:main"
+poe-watch = "watch.run:main"
+poe-watch-board = "watch.board:main"
+poe-watch-calibrate = "watch.calibrate:main"
+poe-watch-publish = "watch.publish:main"
+
+[tool.setuptools]
+packages = ["fingerprint", "receipts", "audit", "manifest", "registry", "watch"]
+
+[tool.setuptools.package-data]
+manifest = ["editions/*.json", "out/*.json"]
+
+[dependency-groups]
+dev = ["pytest>=8"]

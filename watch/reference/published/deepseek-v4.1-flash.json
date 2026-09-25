@@ -1,0 +1,73 @@
+{
+ "version": 1,
+ "model": "deepseek-v4.1-flash",
+ "anchor": "deepseek/api",
+ "run_id": "20260924T162715Z",
+ "measured_at": 1790268298,
+ "checkpoint": {
+  "repo": "deepseek-ai/DeepSeek-V4.1-Flash",
+  "revision": "dba1be0a40aa45a94ad051997016db3960a90277",
+  "format_sha256": {
+   "encoding/encoding.py": "502bdaec8a3fd88ebc24c4721a7038fbe42f2063c664638127056107920035c1",
+   "tokenizer.json": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+   "tokenizer_config.json": "6ac8c8dc065ed118161d02dd532749ae3f52c243deac27872134fae2f50d8547"
+  }
+ },
+ "engine": "0.30.0",
+ "image": "vllm/vllm-openai:v0.30.0",
+ "gpu": "B300:2",
+ "config": [
+  "--engram-config",
+  "{\"cpu_offload\":true}",
+  "--language-model-only"
+ ],
+ "prompt_ids": null,
+ "api_runs": [
+  "20260924T135509Z",
+  "20260924T140512Z",
+  "20260924T141858Z",
+  "20260924T150505Z",
+  "20260924T160512Z"
+ ],
+ "api_vs_reference": {
+  "prompts": 15,
+  "tokens": 36,
+  "passes": [
+   10,
+   8
+  ],
+  "median_mean_gap": 0.2006,
+  "within_2se": 0.556,
+  "median_abs_z": 1.687,
+  "verdict": "within_margin"
+ },
+ "reference_null": {
+  "prompts": 14,
+  "tokens": 34,
+  "passes": [
+   4,
+   4
+  ],
+  "median_mean_gap": 0.1826,
+  "within_2se": 0.912,
+  "median_abs_z": 0.816,
+  "verdict": "within_margin"
+ },
+ "api_null": {
+  "prompts": 15,
+  "tokens": 21,
+  "passes": [
+   5,
+   5
+  ],
+  "median_mean_gap": 0.0466,
+  "within_2se": 0.952,
+  "median_abs_z": 0.598,
+  "verdict": "within_margin"
+ },
+ "set_similarity_percent": 95.59,
+ "margin": {
+  "within_nats": 0.3,
+  "outside_nats": 0.45
+ }
+}

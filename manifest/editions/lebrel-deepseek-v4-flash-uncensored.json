@@ -1,0 +1,49 @@
+{
+  "name": "Lebrel DeepSeek V4 Flash Uncensored",
+  "id": "lebrel/deepseek-v4-flash-uncensored",
+  "base_model": "deepseek-ai/DeepSeek-V4-Flash",
+  "fingerprint_id": null,
+  "recipe": null,
+  "quantization": {
+    "method": "nvfp4",
+    "weights_dtype": "nvfp4",
+    "kv_cache_dtype": "fp8_e4m3",
+    "moe_runner_backend": "flashinfer_mxfp4",
+    "speculative_decoding": "DSPARK"
+  },
+  "engine": {
+    "name": "sglang",
+    "version": "0.5.18",
+    "image": "lmsysorg/sglang:v0.5.18-cu130",
+    "image_digest": "sha256:9e148f5ac788e856a06166bd6347a831831eb9fcfab4d1770874823a7c29a1a1",
+    "arguments": [
+      "--context-length", "1048576",
+      "--reasoning-parser", "deepseek-v4",
+      "--tool-call-parser", "deepseekv4",
+      "--tp", "1",
+      "--moe-runner-backend", "flashinfer_mxfp4",
+      "--speculative-algorithm", "DSPARK",
+      "--kv-cache-dtype", "fp8_e4m3",
+      "--page-size", "256",
+      "--mem-fraction-static", "0.78",
+      "--max-prefill-tokens", "16384",
+      "--max-running-requests", "48",
+      "--cuda-graph-max-bs-decode", "48",
+      "--swa-full-tokens-ratio", "0.1",
+      "--schedule-conservativeness", "1.0"
+    ]
+  },
+  "runtime": {
+    "provider": "modal",
+    "app": "lebrel-deepseek-v4-encrypted-production",
+    "gpu": "B300",
+    "gpu_count": 1,
+    "tee": null,
+    "encryption": "ehbp-hpke-x25519-aes256gcm"
+  },
+  "sidecar": {
+    "name": "lebrel-encrypted-runtime",
+    "binary_sha256": "dfeaa0944a1aaac2d3c05c8429fd539558ba0a4c96f71bffd07f0e746c5a80ab",
+    "chat_agent_sha256": "d04fa15248f41ab54115f7363bc933c6d4be483436f0298050a2cb07f127c7bd"
+  }
+}

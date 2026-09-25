@@ -1,0 +1,212 @@
+{
+  "targets": [
+    {
+      "name": "deepseek/api",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-flash",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "notes": "the lab's own API; deepseek-flash is the current V4.1 Flash alias; thinking disabled so answers are comparable; floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.40 exact, 0.62 prefix, sampled test agrees",
+      "body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "thresholds": {
+        "min_exact_rate": 0.3,
+        "min_prefix_agreement": 0.5
+      }
+    },
+    {
+      "name": "deepseek/api-thinking",
+      "model": "deepseek-v4.1-flash/thinking",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-flash",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "the lab's own API in its native mode: thinking on at high effort, as a client gets it by default; its own family so it is compared with itself over time; floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.15 exact, 0.29 prefix, sampled test agrees; in reasoning mode the temperature-0 answers vary with the chain of thought, so the deterministic test is weak and the sampled test carries the verdict",
+      "thresholds": {
+        "min_exact_rate": 0.1,
+        "min_prefix_agreement": 0.2
+      }
+    },
+    {
+      "name": "deepseek/api-pro",
+      "model": "deepseek-v4-pro",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-v4-pro",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "notes": "DeepSeek V4 Pro on the lab's own API, thinking disabled so answers are comparable; floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.45 exact, 0.64 prefix, sampled test agrees",
+      "thresholds": {
+        "min_exact_rate": 0.3,
+        "min_prefix_agreement": 0.5
+      }
+    },
+    {
+      "name": "deepseek/api-pro-thinking",
+      "model": "deepseek-v4-pro/thinking",
+      "base_url": "https://api.deepseek.com/v1",
+      "upstream_model": "deepseek-v4-pro",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "overrides": {
+        "max_tokens": 2048
+      },
+      "notes": "DeepSeek V4 Pro in its native mode (thinking on, effort high); floor measured on the same deployment, runs 20260923T214043Z vs 20260924T015801Z: 0.20 exact, 0.37 prefix, sampled test agrees; in reasoning mode the temperature-0 answers vary with the chain of thought, so the deterministic test is weak and the sampled test carries the verdict",
+      "thresholds": {
+        "min_exact_rate": 0.1,
+        "min_prefix_agreement": 0.2
+      }
+    },
+    {
+      "name": "openrouter/deepinfra",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "provider": {
+          "order": [
+            "deepinfra"
+          ],
+          "allow_fallbacks": false
+        },
+        "reasoning": {
+          "enabled": false
+        }
+      },
+      "notes": "host pinned through OpenRouter"
+    },
+    {
+      "name": "openrouter/novita",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "provider": {
+          "order": [
+            "novita"
+          ],
+          "allow_fallbacks": false
+        },
+        "reasoning": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "name": "orcarouter",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://api.orcarouter.ai/v1",
+      "upstream_model": "deepseek/deepseek-v4.1-flash",
+      "api_key_env": "ORCAROUTER_API_KEY",
+      "notes": "0% router forwarding to the lab",
+      "body": {
+        "thinking": {
+          "type": "disabled"
+        }
+      }
+    },
+    {
+      "name": "venice",
+      "model": "deepseek-v4.1-flash",
+      "base_url": "https://api.venice.ai/api/v1",
+      "upstream_model": "deepseek-v4-1-flash",
+      "api_key_env": "VENICE_API_KEY",
+      "body": {
+        "venice_parameters": {
+          "include_venice_system_prompt": false,
+          "disable_thinking": true
+        }
+      },
+      "notes": "Venice's own GPUs; their default system prompt is disabled so answers compare like for like"
+    },
+    {
+      "name": "zai/api",
+      "model": "glm-5.3-flash",
+      "base_url": "https://api.z.ai/api/paas/v4",
+      "upstream_model": "glm-5.3-flash",
+      "api_key_env": "ZAI_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      },
+      "notes": "GLM 5.3 Flash cannot switch thinking off; reasoning_effort low keeps answers comparable"
+    },
+    {
+      "name": "openrouter/glm-deepinfra",
+      "model": "glm-5.3-flash",
+      "base_url": "https://openrouter.ai/api/v1",
+      "upstream_model": "z-ai/glm-5.3-flash",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "body": {
+        "provider": {
+          "order": [
+            "deepinfra"
+          ],
+          "allow_fallbacks": false
+        },
+        "reasoning": {
+          "effort": "low"
+        }
+      }
+    },
+    {
+      "name": "venice/glm",
+      "model": "glm-5.3-flash",
+      "base_url": "https://api.venice.ai/api/v1",
+      "upstream_model": "z-ai-glm-5-3-flash",
+      "api_key_env": "VENICE_API_KEY",
+      "body": {
+        "venice_parameters": {
+          "include_venice_system_prompt": false
+        }
+      }
+    },
+    {
+      "name": "moonshot/api",
+      "model": "kimi-k3",
+      "base_url": "https://api.moonshot.ai/v1",
+      "upstream_model": "kimi-k3",
+      "api_key_env": "MOONSHOT_API_KEY",
+      "body": {
+        "reasoning_effort": "low"
+      }
+    },
+    {
+      "name": "alibaba/api",
+      "model": "qwen3.8-flash",
+      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "upstream_model": "qwen3.8-flash",
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "notes": "international (Singapore) endpoint"
+    },
+    {
+      "name": "orcarouter/obsidian-qwen38",
+      "model": "qwen3.8-27b-uncensored",
+      "base_url": "https://api.orcarouter.ai/v1",
+      "upstream_model": "obsidian/Qwen3.8-27B",
+      "api_key_env": "ORCAROUTER_API_KEY",
+      "notes": "Orca's abliterated edition, block-FP8"
+    },
+    {
+      "name": "venice/qwen38-uncensored",
+      "model": "qwen3.8-27b-uncensored",
+      "base_url": "https://api.venice.ai/api/v1",
+      "upstream_model": "qwen-3-8-27b",
+      "api_key_env": "VENICE_API_KEY",
+      "body": {
+        "venice_parameters": {
+          "include_venice_system_prompt": false
+        }
+      },
+      "notes": "Venice's beta uncensored Qwen 3.8 27B; the consensus test tells whether it is Orca's edition"
+    }
+  ]
+}
