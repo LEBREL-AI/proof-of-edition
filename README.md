@@ -25,7 +25,7 @@ question set, and Lebrel's operational notes.
 ## Verify a response you received
 
 ```bash
-uv tool install git+https://github.com/LEBREL-AI/proof-of-edition   # or, from a checkout: uv run poe-verify-receipt ...
+pip install proof-of-edition   # PyPI; or uv tool install proof-of-edition
 curl -s https://api.lebrel.ai/.well-known/proof-of-edition > manifest.json
 curl -s https://api.lebrel.ai/v1/receipts/$REQUEST_ID > receipt.json
 poe-verify-receipt --public-key $PROVIDER_SIGNING_KEY \
