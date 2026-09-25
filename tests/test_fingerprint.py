@@ -11,11 +11,11 @@ from pathlib import Path
 
 from nacl.signing import SigningKey
 
-from watch import fingerprint as fp
-from watch.board import build_board, classify
-from watch.client import Target, load_targets
-from watch.publish import post_signed, reveal_documents
-from watch.sign import key_id, public_key_hex, sign, verify
+from proof_of_edition.watch import fingerprint as fp
+from proof_of_edition.watch.board import build_board, classify
+from proof_of_edition.watch.client import Target, load_targets
+from proof_of_edition.watch.publish import post_signed, reveal_documents
+from proof_of_edition.watch.sign import key_id, public_key_hex, sign, verify
 
 FIXTURES = Path(__file__).parent / "fixtures" / "route"
 
@@ -343,7 +343,7 @@ class HistoryTests(unittest.TestCase):
             for _ in range(2):
                 fp.run(targets, root, seed=None, pool=None, prober=prober, clock=lambda: next(clock), log=lambda line: None)
             self.assertEqual(calls["lab"], 2 * 2 * len(fp.PUBLIC_PROMPTS), "two passes of the anchor per run")
-            from watch.board import load_run, list_runs
+            from proof_of_edition.watch.board import load_run, list_runs
             runs = [load_run(p) for p in list_runs(root)]
             sections = fp.fingerprint_sections(runs)
             self.assertEqual(sections["route"]["history_passes"], 2, "the first run is 25 hours old: outside the reference window")

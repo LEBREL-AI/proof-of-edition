@@ -6,7 +6,7 @@ try:
 except ImportError:  # pragma: no cover
     SigningKey = None
 
-from receipts.schema import manifest_identity, Signed, canonical, check_manifest, check_receipt, key_id, sha256_hex, sign
+from proof_of_edition.receipts.schema import manifest_identity, Signed, canonical, check_manifest, check_receipt, key_id, sha256_hex, sign
 
 
 def manifest_payload(public_key: bytes, now: float) -> dict:

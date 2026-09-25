@@ -6,10 +6,10 @@ from pathlib import Path
 
 from nacl.signing import SigningKey
 
-from receipts.schema import Signed, sign
-from registry.log import check_checkpoint, load_entries
-from registry.publish import publish, verify_local_files
-from registry.record import build_record
+from proof_of_edition.receipts.schema import Signed, sign
+from proof_of_edition.registry.log import check_checkpoint, load_entries
+from proof_of_edition.registry.publish import publish, verify_local_files
+from proof_of_edition.registry.record import build_record
 
 SEED = bytes([3]) * 32
 PUBLIC = bytes(SigningKey(SEED).verify_key)

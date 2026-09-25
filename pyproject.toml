@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "proof-of-edition"
-version = "0.1.0"
+version = "0.2.0"
 authors = [{ name = "Lebrel" }]
 description = "Proof of Edition: verify that an inference API serves the model edition it claims (fingerprints, signed manifests and receipts, re-execution audits)."
 readme = "README.md"
@@ -23,25 +23,25 @@ Watch = "https://models.lebrel.ai/watch"
 Documentation = "https://lebrel.ai/docs#verification"
 
 [project.scripts]
-poe-verify-fingerprint = "fingerprint.verify:main"
-poe-verify-receipt = "receipts.verify_receipt:main"
-poe-audit = "audit.reexecute:main"
-poe-build-manifest = "manifest.build_manifest:main"
-poe-check-manifest = "registry.check_manifest:main"
-poe-registry-record = "registry.record:main"
-poe-registry-log = "registry.log:main"
-poe-registry-publish = "registry.publish:main"
-poe-registry-mirror = "registry.mirror:main"
-poe-watch = "watch.run:main"
-poe-watch-board = "watch.board:main"
-poe-watch-calibrate = "watch.calibrate:main"
-poe-watch-publish = "watch.publish:main"
+poe-verify-fingerprint = "proof_of_edition.fingerprint.verify:main"
+poe-verify-receipt = "proof_of_edition.receipts.verify_receipt:main"
+poe-audit = "proof_of_edition.audit.reexecute:main"
+poe-build-manifest = "proof_of_edition.manifest.build_manifest:main"
+poe-check-manifest = "proof_of_edition.registry.check_manifest:main"
+poe-registry-record = "proof_of_edition.registry.record:main"
+poe-registry-log = "proof_of_edition.registry.log:main"
+poe-registry-publish = "proof_of_edition.registry.publish:main"
+poe-registry-mirror = "proof_of_edition.registry.mirror:main"
+poe-watch = "proof_of_edition.watch.run:main"
+poe-watch-board = "proof_of_edition.watch.board:main"
+poe-watch-calibrate = "proof_of_edition.watch.calibrate:main"
+poe-watch-publish = "proof_of_edition.watch.publish:main"
 
-[tool.setuptools]
-packages = ["fingerprint", "receipts", "audit", "manifest", "registry", "watch"]
+[tool.setuptools.packages.find]
+include = ["proof_of_edition*"]
 
 [tool.setuptools.package-data]
-manifest = ["editions/*.json", "out/*.json"]
+"proof_of_edition.manifest" = ["editions/*.json", "out/*.json"]
 
 [dependency-groups]
 dev = ["pytest>=8"]

@@ -47,8 +47,8 @@ published:
   proves that the runtime serves exactly what the registry published, and that the
   record is in the log.
 
-Tooling: `registry/record.py` (publish and check records), `registry/log.py`
-(append, checkpoint, verify, inclusion), `registry/check_manifest.py`. The download
+Tooling: `proof_of_edition/registry/record.py` (publish and check records), `proof_of_edition/registry/log.py`
+(append, checkpoint, verify, inclusion), `proof_of_edition/registry/check_manifest.py`. The download
 protocol follows the de-facto hub conventions that inference engines (vLLM, SGLang)
 already speak, so they pull from the registry without code changes; this is protocol
 compatibility, not a dependency on any third-party hub.
@@ -114,18 +114,18 @@ manifest disagrees with the weights actually served is the evidence of layer 3.
 
 ### Tooling for layer 2
 
-* `manifest/build_manifest.py` builds the manifest base for an edition from the
+* `proof_of_edition/manifest/build_manifest.py` builds the manifest base for an edition from the
   upload-time weights manifest (per-file SHA-256, the same file the runtime pins)
-  and an edition spec in `manifest/editions/`. Weight shard digests, tokenizer
+  and an edition spec in `proof_of_edition/manifest/editions/`. Weight shard digests, tokenizer
   and chat-template digests and the engine arguments digest are derived, never
   typed by hand. The runtime receives the result as `LEBREL_SERVING_MANIFEST_JSON`.
-* `receipts/verify_receipt.py` is the client-side verifier: it pins the runtime's
+* `proof_of_edition/receipts/verify_receipt.py` is the client-side verifier: it pins the runtime's
   Ed25519 public key, fetches (or reads) the manifest and a receipt, and checks
   signatures, the manifest window, the manifest identity and, when given the
   plaintext, the prompt and response digests. Exit code 0 means verified.
 * The Lebrel encrypted runtime (Go sidecar) implements the manifest endpoint, receipt issuance for plain, streaming and
   agent responses, the `Proof-Of-Edition-Receipt` header and `GET /v1/receipts/{id}`.
-  Its canonical JSON is byte-identical to `receipts/schema.py`.
+  Its canonical JSON is byte-identical to `proof_of_edition/receipts/schema.py`.
 
 ## 3. Open re-execution audit
 
@@ -139,7 +139,7 @@ over its own endpoint and over other providers, with the same method.
 
 ### Tooling for layer 3
 
-`audit/reexecute.py` is the reference audit tool. It takes a JSONL of exchanges
+`proof_of_edition/audit/reexecute.py` is the reference audit tool. It takes a JSONL of exchanges
 (request body, assistant text, signed receipt), verifies every receipt against
 the manifest, then re-executes the prompts on a reference deployment of the
 edition. Deterministic requests (temperature 0 or top_k 1) are compared by exact

@@ -4,10 +4,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from manifest.build_manifest import build_manifest, chat_template_digest, main, validate_edition
+from proof_of_edition.manifest.build_manifest import build_manifest, chat_template_digest, main, validate_edition
 
 ROOT = Path(__file__).resolve().parents[1]
-EDITION = ROOT / "manifest" / "editions" / "lebrel-deepseek-v4-flash-uncensored.json"
+EDITION = ROOT / "proof_of_edition" / "manifest" / "editions" / "lebrel-deepseek-v4-flash-uncensored.json"
 
 
 def weights_manifest(extra: dict | None = None) -> dict:

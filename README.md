@@ -9,10 +9,10 @@ layered on top (layer 5).
 
 | Layer | What it is | Tooling |
 | --- | --- | --- |
-| 0. Edition registry | The publisher's own registry: content-addressed signed records, a transparency log and interchangeable mirrors, so nothing can be swapped or removed silently. | `registry/` (records, log, manifest check) |
-| 1. Edition fingerprint | The edition itself answers a private set of questions in a way no other model does (Chain & Hash, Russinovich & Salem, ICLR 2026). | `fingerprint/` (the statistics and the verifier; the training pipeline and the private question sets stay with the publisherin on Modal, verify black-box) |
-| 2. Signed manifest + receipts | The runtime signs what it serves and signs a receipt for every response: hashes of the request and the answer, the manifest, token counts. | `manifest/`, `receipts/` |
-| 3. Open re-execution audit | Anyone re-runs receipts on a reference deployment of the same edition and tests the answers for consistency. | `audit/` |
+| 0. Edition registry | The publisher's own registry: content-addressed signed records, a transparency log and interchangeable mirrors, so nothing can be swapped or removed silently. | `proof_of_edition/registry/` (records, log, manifest check) |
+| 1. Edition fingerprint | The edition itself answers a private set of questions in a way no other model does (Chain & Hash, Russinovich & Salem, ICLR 2026). | `proof_of_edition/fingerprint/` (the statistics and the verifier; the training pipeline and the private question sets stay with the publisherin on Modal, verify black-box) |
+| 2. Signed manifest + receipts | The runtime signs what it serves and signs a receipt for every response: hashes of the request and the answer, the manifest, token counts. | `proof_of_edition/manifest/`, `proof_of_edition/receipts/` |
+| 3. Open re-execution audit | Anyone re-runs receipts on a reference deployment of the same edition and tests the answers for consistency. | `proof_of_edition/audit/` |
 | 4. Serving bond | The provider stakes value against a proven substitution. | specification only, for now |
 | 5. Attestation | Optional hardware attestation of the manifest. | specification only, for now |
 
@@ -47,7 +47,7 @@ poe-verify-fingerprint --base-url https://api.lebrel.ai/v1 --model lebrel/<editi
 The fingerprint file is private to whoever trained the edition; only the sampled
 questions are sent to the deployment. With k = 10 questions and a threshold of 2
 hits, the false-positive rate against an unrelated model is negligible
-(see `fingerprint/chainhash.py`).
+(see `proof_of_edition/fingerprint/chainhash.py`).
 
 ## Audit a provider
 
@@ -59,7 +59,7 @@ poe-audit --samples exchanges.jsonl --manifest manifest.json --public-key $KEY \
 
 Deterministic requests are compared by exact match and shared prefix; sampled
 requests use a paired permutation test over a Hamming kernel. See
-`audit/reexecute.py`.
+`proof_of_edition/audit/reexecute.py`.
 
 ## Check a runtime against the registry
 
@@ -83,13 +83,13 @@ encrypted runtime (Go) reads it from `LEBREL_SERVING_MANIFEST_JSON`.
 
 ## Watch the labs
 
-`watch/` probes the labs' own APIs and every host of the same model on a schedule,
+`proof_of_edition/watch/` probes the labs' own APIs and every host of the same model on a schedule,
 compares them with each other and with Lebrel's own run of the published weights,
 and publishes a signed board at https://models.lebrel.ai/watch: the battery, the
 hourly first-word fingerprint (by log-probabilities, or by sampling where a lab
 returns none), the published-weights references and every threshold. How each
 status is computed, and what it can and cannot mean, is in
-[watch/README.md](watch/README.md).
+[watch/README.md](proof_of_edition/watch/README.md).
 
 ## Development
 

@@ -8,10 +8,10 @@ from pathlib import Path
 
 from nacl.signing import SigningKey
 
-from receipts.schema import Signed, sign
-from registry.log import append, checkpoint, load_entries
-from registry.mirror import mirror
-from registry.record import build_record, record_sha256
+from proof_of_edition.receipts.schema import Signed, sign
+from proof_of_edition.registry.log import append, checkpoint, load_entries
+from proof_of_edition.registry.mirror import mirror
+from proof_of_edition.registry.record import build_record, record_sha256
 
 SEED = bytes([3]) * 32
 PUBLIC = bytes(SigningKey(SEED).verify_key)
@@ -139,7 +139,7 @@ class MirrorTest(unittest.TestCase):
             root = tmp / "vol1"
             root.mkdir()
             fetch = FakeFetch(texts, blobs, truncate_first=7000)
-            with unittest.mock.patch("registry.mirror.time.sleep"):
+            with unittest.mock.patch("proof_of_edition.registry.mirror.time.sleep"):
                 summary = mirror(fetch, [root], PUBLIC, log=lambda *_: None, parallel=1)
             self.assertEqual(summary["problems"], [])
             self.assertEqual(summary["blobs_stored"], 3)

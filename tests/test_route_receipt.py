@@ -4,8 +4,8 @@ import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from receipts.schema import Signed, check_route_manifest, check_route_receipt, manifest_identity, sha256_hex
-from receipts.verify_receipt import main, verify
+from proof_of_edition.receipts.schema import Signed, check_route_manifest, check_route_receipt, manifest_identity, sha256_hex
+from proof_of_edition.receipts.verify_receipt import main, verify
 
 FIXTURES = Path(__file__).parent / "fixtures" / "route"
 NOW = 1_900_000_120
@@ -53,7 +53,7 @@ class RouteReceiptTests(unittest.TestCase):
 
     def test_serving_receipt_path_untouched(self):
         # a route receipt presented against a serving manifest must fail loudly, never pass by accident
-        from receipts.schema import check_receipt
+        from proof_of_edition.receipts.schema import check_receipt
         problems = check_receipt(self.receipt, self.public_key, self.manifest)
         self.assertTrue(any("unsupported receipt version" in p for p in problems))
 

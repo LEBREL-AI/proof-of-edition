@@ -3,7 +3,7 @@ import unittest
 from contextlib import redirect_stderr
 
 from tests.test_watch import PERSONAS, FakeCaller, target
-from watch.calibrate import calibrate
+from proof_of_edition.watch.calibrate import calibrate
 
 
 class CalibrateTests(unittest.TestCase):
@@ -18,7 +18,7 @@ class CalibrateTests(unittest.TestCase):
         self.assertEqual(entry["warnings"], [])
 
     def test_missing_key_is_reported(self):
-        from watch.client import Target
+        from proof_of_edition.watch.client import Target
         t = Target(name="needs-key", model="m", base_url="u", upstream_model="m", api_key_env="WATCH_TEST_MISSING_KEY")
         with redirect_stderr(io.StringIO()):
             report = calibrate([t], samples=2, permutations=10, caller=FakeCaller({}), clock=lambda: 1_800_000_000)

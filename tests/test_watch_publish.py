@@ -1,6 +1,6 @@
 import unittest
 
-from watch.publish import BOARD_KEY, publish, validate_board
+from proof_of_edition.watch.publish import BOARD_KEY, publish, validate_board
 
 
 class MemoryStore:

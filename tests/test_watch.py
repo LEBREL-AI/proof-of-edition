@@ -7,11 +7,11 @@ import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
 
-from watch.battery import battery_id, build_battery, evaluate_canary, looks_like_refusal, Probe
-from watch.board import build_board, classify, render_html
-from watch.client import Exchange, Target, call, load_targets
-from watch.compare import deterministic_agreement, two_sample_test
-from watch.run import run
+from proof_of_edition.watch.battery import battery_id, build_battery, evaluate_canary, looks_like_refusal, Probe
+from proof_of_edition.watch.board import build_board, classify, render_html
+from proof_of_edition.watch.client import Exchange, Target, call, load_targets
+from proof_of_edition.watch.compare import deterministic_agreement, two_sample_test
+from proof_of_edition.watch.run import run
 
 VOCAB_A = ["harbour", "tide", "lamp", "gull", "salt", "rope", "fog", "pier", "net", "keel"]
 VOCAB_B = ["market", "cart", "bell", "coin", "bread", "stall", "clock", "gate", "wool", "cup"]
@@ -310,8 +310,8 @@ if __name__ == "__main__":
 
 class ThresholdTests(unittest.TestCase):
     def test_per_target_thresholds_judge_a_noisy_lab(self):
-        from watch.board import thresholds_for
-        from watch.client import Target
+        from proof_of_edition.watch.board import thresholds_for
+        from proof_of_edition.watch.client import Target
         noisy = Target(name="lab", model="m", base_url="https://example.invalid/v1", upstream_model="m", thresholds={"min_exact_rate": 0.3, "min_prefix_agreement": 0.5})
         self.assertEqual(thresholds_for({"thresholds": noisy.thresholds}), {"min_exact_rate": 0.3, "min_prefix_agreement": 0.5})
         self.assertEqual(thresholds_for({}), {"min_exact_rate": 0.9, "min_prefix_agreement": 0.95})
@@ -343,7 +343,7 @@ class OverrideTests(unittest.TestCase):
         self.assertEqual(sent["temperature"], 0)
 
     def test_max_tokens_probe_keeps_its_cap_despite_overrides(self):
-        from watch.run import run_target
+        from proof_of_edition.watch.run import run_target
         seen = []
 
         def caller(target, probe, sample, request, *, timeout=0.0, apply_overrides=True):

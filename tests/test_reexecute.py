@@ -10,8 +10,8 @@ from pathlib import Path
 
 from nacl.signing import SigningKey
 
-from audit.reexecute import audit, hamming_kernel, is_deterministic, load_samples, main, paired_permutation_test, prefix_agreement
-from receipts.schema import Signed, key_id, manifest_identity, sign
+from proof_of_edition.audit.reexecute import audit, hamming_kernel, is_deterministic, load_samples, main, paired_permutation_test, prefix_agreement
+from proof_of_edition.receipts.schema import Signed, key_id, manifest_identity, sign
 
 NOW = 1_900_000_123
 SEED = bytes([7]) * 32

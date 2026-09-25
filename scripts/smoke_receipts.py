@@ -28,7 +28,7 @@ from pathlib import Path
 import httpx
 from lebrel_encrypted.client import MODEL_ID, PRODUCTION_SIGNING_KEY, Lebrel, _plaintext, _response_object
 
-from receipts.schema import Signed, check_manifest, check_receipt, manifest_identity
+from proof_of_edition.receipts.schema import Signed, check_manifest, check_receipt, manifest_identity
 
 MANIFEST_PATH = "/.well-known/proof-of-edition"
 RECEIPTS_PATH = "/v1/receipts/"

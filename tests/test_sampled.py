@@ -7,11 +7,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from watch import fingerprint as fp
-from watch.board import build_board, classify
-from watch.client import Target
-from watch.fingerprint import ProbeResult
-from watch.sampled import compare_sampled, first_word
+from proof_of_edition.watch import fingerprint as fp
+from proof_of_edition.watch.board import build_board, classify
+from proof_of_edition.watch.client import Target
+from proof_of_edition.watch.fingerprint import ProbeResult
+from proof_of_edition.watch.sampled import compare_sampled, first_word
 
 
 def target(name: str, model: str = "glm-flash", **kw) -> Target:

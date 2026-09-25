@@ -8,8 +8,8 @@ from pathlib import Path
 
 from nacl.signing import SigningKey
 
-from receipts.schema import key_id, manifest_identity, sign
-from receipts.verify_receipt import main, verify
+from proof_of_edition.receipts.schema import key_id, manifest_identity, sign
+from proof_of_edition.receipts.verify_receipt import main, verify
 
 NOW = 1_900_000_123
 

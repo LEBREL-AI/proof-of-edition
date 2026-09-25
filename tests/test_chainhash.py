@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 import tempfile
 
-from fingerprint.chainhash import (
+from proof_of_edition.fingerprint.chainhash import (
     RESPONSES, Fingerprint, derive_answer, false_negative_rate, false_positive_rate,
     load, new_fingerprint, random_token_questions, save,
 )

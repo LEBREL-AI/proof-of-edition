@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from watch import fingerprint
-from watch.reference import analyze, prepare
+from proof_of_edition.watch import fingerprint
+from proof_of_edition.watch.reference import analyze, prepare
 
 CACHE = prepare.CACHE / prepare.REPO.replace("/", "__") / prepare.REVISION
 

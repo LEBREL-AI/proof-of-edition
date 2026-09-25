@@ -5,7 +5,7 @@ import json
 import random
 from pathlib import Path
 
-from watch.reference import analyze_sampled
+from proof_of_edition.watch.reference import analyze_sampled
 
 WORDS = {"blue": 0.5, "red": 0.3, "green": 0.2}
 OTHER = {"blue": 0.2, "red": 0.2, "green": 0.6}
@@ -101,7 +101,7 @@ def test_cli_writes_the_report_and_the_board_document(tmp_path, capsys):
 
 
 def test_margin_judges_the_api_against_the_reference_spread_and_publishes_every_number():
-    from watch import sampled
+    from proof_of_edition.watch import sampled
     same_tokens = {"offsets": [0], "same_count": True, "same_tokenizer": True}
     own = {"tv_observed": 0.1734, "tv_null_mean": 0.1622, "verdict": "sampled_match"}  # the reference's own spread: 0.0112
     api = {"tv_observed": 0.1144, "tv_null_mean": 0.1009, "verdict": "sampled_differs", "tokens": same_tokens}  # excess 0.0135

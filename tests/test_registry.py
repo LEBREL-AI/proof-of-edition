@@ -7,10 +7,10 @@ from pathlib import Path
 
 from nacl.signing import SigningKey
 
-from receipts.schema import Signed, key_id, sign
-from registry.check_manifest import compare, main as check_main
-from registry.log import append, check_checkpoint, checkpoint, inclusion, load_entries, verify_chain
-from registry.record import build_record, check_record, content_revision, record_sha256, main as record_main
+from proof_of_edition.receipts.schema import Signed, key_id, sign
+from proof_of_edition.registry.check_manifest import compare, main as check_main
+from proof_of_edition.registry.log import append, check_checkpoint, checkpoint, inclusion, load_entries, verify_chain
+from proof_of_edition.registry.record import build_record, check_record, content_revision, record_sha256, main as record_main
 
 NOW = 1_900_000_123
 PUBLISHER_SEED = bytes([3]) * 32
