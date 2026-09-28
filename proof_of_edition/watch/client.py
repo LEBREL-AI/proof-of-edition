@@ -12,6 +12,27 @@ from typing import Any
 
 USER_AGENT = "proof-of-edition-watch/0.1"
 RETRY_STATUSES = {408, 409, 425, 429, 500, 502, 503, 504}
+RETRY_AFTER_CAP_S = 65.0  # a rate limit's window is a minute at most on the endpoints the watch calls
+
+
+def retry_delay(error: Exception | None, attempt: int) -> float:
+    """How long to wait before the next attempt: the server's own ``Retry-After`` when it sends one (the rate
+    limit's window, capped), otherwise a short backoff. Retrying inside the window only burns the retry."""
+    headers = getattr(error, "headers", None)
+    header = None
+    if headers is not None:
+        try:
+            header = headers.get("Retry-After")
+        except Exception:  # noqa: BLE001 - any mapping-like headers object
+            header = None
+    if header:
+        try:
+            seconds = float(str(header).strip())
+            if seconds >= 0:
+                return min(seconds, RETRY_AFTER_CAP_S)
+        except ValueError:
+            pass
+    return min(2.0 * attempt, 8.0)
 
 
 @dataclass(frozen=True)
@@ -190,7 +211,7 @@ def call(target: Target, probe: str, sample: int, request: dict[str, Any], *, ti
                 pass
             exchange.error = f"HTTP {error.code}: {detail}".strip()
             if error.code in RETRY_STATUSES and attempt <= retries:
-                sleep(min(2.0 * attempt, 8.0))
+                sleep(retry_delay(error, attempt))
                 continue
             return exchange
         except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError, ValueError, KeyError, json.JSONDecodeError) as error:

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from proof_of_edition.watch.battery import battery_id, build_battery, evaluate_canary, looks_like_refusal, Probe
 from proof_of_edition.watch.board import build_board, classify, render_html
-from proof_of_edition.watch.client import Exchange, Target, call, load_targets
+from proof_of_edition.watch.client import Exchange, Target, call, load_targets, retry_delay
 from proof_of_edition.watch.compare import deterministic_agreement, two_sample_test
 from proof_of_edition.watch.run import run
 
@@ -195,6 +195,26 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(exchange.status, 503)
         self.assertEqual(exchange.attempts, 3)
         self.assertIn("HTTP 503", exchange.error)
+
+    def test_call_waits_for_retry_after_on_a_rate_limit(self):
+        import urllib.error
+        from email.message import Message
+        limited = Message()
+        limited["Retry-After"] = "60"
+        error = urllib.error.HTTPError("u", 429, "rate limited", limited, io.BytesIO(b'{"error":{"code":"rate_limit_exceeded"}}'))
+        document = {"choices": [{"finish_reason": "stop", "message": {"role": "assistant", "content": "after the window"}}]}
+        opener = self.FakeOpener([error, self.FakeResponse(json.dumps(document).encode())])
+        waited = []
+        t = Target(name="t", model="m", base_url="https://api.example/v1", upstream_model="m")
+        exchange = call(t, "det-01", 0, {"messages": []}, opener=opener, sleep=waited.append, retries=2)
+        self.assertEqual(exchange.text, "after the window")
+        self.assertEqual(waited, [60.0], "the server's window, not the short backoff")
+        self.assertIsNone(exchange.error)
+        far = Message()
+        far["Retry-After"] = "3600"
+        self.assertEqual(retry_delay(urllib.error.HTTPError("u", 429, "x", far, None), 1), 65.0, "capped")
+        self.assertEqual(retry_delay(urllib.error.HTTPError("u", 503, "x", Message(), None), 2), 4.0, "no header: the backoff")
+        self.assertEqual(retry_delay(None, 1), 2.0)
 
     def test_call_retries_a_response_cut_mid_body_then_succeeds(self):
         import http.client

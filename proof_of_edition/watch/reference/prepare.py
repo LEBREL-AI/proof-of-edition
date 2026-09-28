@@ -20,17 +20,18 @@ from typing import Any
 
 REPO = "deepseek-ai/DeepSeek-V4.1-Flash"
 REVISION = "dba1be0a40aa45a94ad051997016db3960a90277"
-FORMAT_FILES = ("encoding/encoding.py", "tokenizer.json", "tokenizer_config.json")
+ENCODING_FILE = "encoding/encoding.py"  # DeepSeek V4.1 Flash; V4 Pro publishes encoding/encoding_dsv4.py with the same interface
+TOKENIZER_FILES = ("tokenizer.json", "tokenizer_config.json")
 CACHE = Path(os.environ.get("LEBREL_REFERENCE_CACHE", Path.home() / ".cache" / "lebrel-reference"))
 
 
-def fetch_format(repo: str = REPO, revision: str = REVISION) -> dict[str, Any]:
+def fetch_format(repo: str = REPO, revision: str = REVISION, encoding_file: str = ENCODING_FILE) -> dict[str, Any]:
     """The format files of the edition, cached by revision; returns their paths and digests."""
     root = CACHE / repo.replace("/", "__") / revision
     root.mkdir(parents=True, exist_ok=True)
     digests: dict[str, str] = {}
     paths: dict[str, Path] = {}
-    for name in FORMAT_FILES:
+    for name in (encoding_file, *TOKENIZER_FILES):
         target = root / Path(name).name
         if not target.exists():
             url = f"https://huggingface.co/{repo}/resolve/{revision}/{name}"
@@ -49,12 +50,13 @@ def load_encoding(path: Path):
     return module
 
 
-def render(prompts: dict[str, str], *, thinking_mode: str = "chat", system: str | None = None) -> list[dict[str, Any]]:
+def render(prompts: dict[str, str], *, thinking_mode: str = "chat", system: str | None = None, repo: str = REPO, revision: str = REVISION,
+           encoding_file: str = ENCODING_FILE) -> list[dict[str, Any]]:
     """Each prompt as the lab's format renders a one-message conversation, with its token ids."""
     from tokenizers import Tokenizer
 
-    fmt = fetch_format()
-    encoding = load_encoding(fmt["paths"]["encoding/encoding.py"])
+    fmt = fetch_format(repo, revision, encoding_file)
+    encoding = load_encoding(fmt["paths"][encoding_file])
     tokenizer = Tokenizer.from_file(str(fmt["paths"]["tokenizer.json"]))
     out = []
     for pid, text in prompts.items():
@@ -81,11 +83,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--system", default=None, help="optional system prompt to prepend (an experiment)")
     parser.add_argument("--check", type=Path, default=None, help="summary.json of the same run, to compare token counts")
     parser.add_argument("--anchor", default="deepseek/api")
+    parser.add_argument("--repo", default=REPO, help="the published checkpoint whose prompt format and tokenizer render the prompts")
+    parser.add_argument("--revision", default=REVISION)
+    parser.add_argument("--encoding-file", default=ENCODING_FILE, help="the encoder module inside the checkpoint (encoding/encoding.py, encoding/encoding_dsv4.py)")
     args = parser.parse_args(argv)
     prompts = json.loads(args.prompts.read_text())
-    rendered = render(prompts, thinking_mode=args.thinking_mode, system=args.system)
-    fmt = fetch_format()
-    document = {"repo": fmt["repo"], "revision": fmt["revision"], "format_sha256": fmt["sha256"], "thinking_mode": args.thinking_mode,
+    rendered = render(prompts, thinking_mode=args.thinking_mode, system=args.system, repo=args.repo, revision=args.revision, encoding_file=args.encoding_file)
+    fmt = fetch_format(args.repo, args.revision, args.encoding_file)
+    document = {"repo": fmt["repo"], "revision": fmt["revision"], "encoding_file": args.encoding_file, "format_sha256": fmt["sha256"], "thinking_mode": args.thinking_mode,
                 "system": args.system, "prompts": rendered}
     if args.check:
         document["count_check"] = check_counts(rendered, args.check, args.anchor)

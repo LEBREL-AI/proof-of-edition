@@ -185,7 +185,9 @@ def build_board(runs_dir: Path, *, fingerprints_dir: Path | None = None, referen
         if now - float(section.get("checked_at") or 0) > FINGERPRINT_STALE_SECONDS * cadence:
             section["stale"] = True
     for name, section in sections.items():  # the lab's API against Lebrel's own run of the published weights
-        model = (fp_latest["summary"].get(name) or {}).get("model") if fp_latest else None
+        # The section names its model itself: a six-hourly anchor is absent from most hourly runs, and its
+        # reference verdict must not come and go with the hour.
+        model = section.get("model") or ((fp_latest["summary"].get(name) or {}).get("model") if fp_latest else None)
         if section.get("verdict") == "anchor" and model in reference_docs:
             doc = reference_docs[model]
             comparison = doc["api_vs_reference"]

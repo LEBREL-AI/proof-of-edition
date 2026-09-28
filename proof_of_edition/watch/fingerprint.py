@@ -57,7 +57,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from proof_of_edition.watch import sampled as sampled_fp
-from proof_of_edition.watch.client import USER_AGENT, Target, load_targets
+from proof_of_edition.watch.client import USER_AGENT, Target, load_targets, retry_delay
 
 FINGERPRINT_VERSION = 1
 TOP_LOGPROBS = 20
@@ -275,7 +275,7 @@ def probe_once(target: Target, prompt_id: str, text: str, *, timeout: float = 60
             except Exception:  # noqa: BLE001 - best effort
                 pass
             if error.code in (408, 409, 425, 429, 500, 502, 503, 504) and attempt <= retries:
-                sleep(min(2.0 * attempt, 8.0))
+                sleep(retry_delay(error, attempt))  # a 429 names its window: waiting less than that only burns the retry
                 continue
             return ProbeResult(prompt_id, error.code, None, None, None, None, None, None, time.perf_counter() - started, f"HTTP {error.code}: {detail}".strip())
         except (urllib.error.URLError, TimeoutError, OSError, ValueError, json.JSONDecodeError) as error:
@@ -454,7 +454,8 @@ def run(targets: list[Target], out_dir: Path, *, seed: bytes | None, pool: list[
             counts = summary[name]["counts"]
             log(f"{name}: {counts['total'] - counts['errors']}/{counts['total']} answered")
     metadata = {"run_id": run_id, "kind": "fingerprint", "fingerprint_version": FINGERPRINT_VERSION, "started_at": started, "finished_at": clock(),
-                "prompt_ids": [pid for pid, _ in prompts], "commitment": week_commitment, "targets": [t.name for t in selected]}
+                "prompt_ids": [pid for pid, _ in prompts], "commitment": week_commitment, "targets": [t.name for t in selected],
+                "configured": [t.name for t in targets if t.fingerprint]}  # every target the watch has, probed this hour or not
     (run_dir / "run.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     (run_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False) + "\n", encoding="utf-8")
     # the prompt texts stay on this machine: secret ones are revealed only after their week
@@ -672,6 +673,9 @@ def fingerprint_sections(runs: list[dict[str, Any]] | dict[str, Any], previous: 
         for name, data in run["summary"].items():
             if name not in latest_for or (latest_for[name]["summary"][name].get("skipped") and not data.get("skipped")):
                 latest_for[name] = run
+    configured = (runs[-1]["metadata"].get("configured") if runs else None)  # a target dropped from the watch leaves the board at once
+    if isinstance(configured, list):
+        latest_for = {name: run for name, run in latest_for.items() if name in configured}
     anchors = {run["summary"][name].get("model"): name for name, run in latest_for.items()
                if run["summary"][name].get("anchor") and not run["summary"][name].get("skipped")}
     sections: dict[str, dict[str, Any]] = {}
@@ -684,7 +688,7 @@ def fingerprint_sections(runs: list[dict[str, Any]] | dict[str, Any], previous: 
         if data.get("skipped"):
             sections[name] = {"verdict": "skipped", "run_id": meta["run_id"], "checked_at": checked_at}
             continue
-        section: dict[str, Any] = {"run_id": meta["run_id"], "checked_at": checked_at, "hour_utc": hour,
+        section: dict[str, Any] = {"run_id": meta["run_id"], "checked_at": checked_at, "hour_utc": hour, "model": data.get("model"),
                                    "prompts": len(data.get("prompts") or {}), "system_fingerprints": sorted(data.get("system_fingerprints") or {}),
                                    "receipts": data.get("receipts")}
         anchor_name = anchors.get(data.get("model"))

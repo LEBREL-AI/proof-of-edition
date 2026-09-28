@@ -19,16 +19,41 @@ from pathlib import Path
 import modal
 
 MODELS = {
+    # DeepSeek V4.1 Flash (510 GB, 48 shards): first-word log-probabilities, which the lab's API returns too.
     "deepseek-flash": {"repo": "deepseek-ai/DeepSeek-V4.1-Flash", "revision": "dba1be0a40aa45a94ad051997016db3960a90277",
-                       "volume": "lebrel-watch-reference-flash", "app": "lebrel-watch-reference", "watch_model": "deepseek-v4.1-flash"},
+                       "volume": "lebrel-watch-reference-flash", "app": "lebrel-watch-reference", "watch_model": "deepseek-v4.1-flash",
+                       "gpu": "B300:2", "tp": 2, "disk_gb": 700, "encoding_file": "encoding/encoding.py",
+                       "measure_configs": [["--engram-config", '{"cpu_offload":true}', "--language-model-only", "--enforce-eager"],
+                                           ["--engram-config", '{"cpu_offload":true}', "--language-model-only"]]},
+    # DeepSeek V4 Pro (865 GB, 64 shards, FP4+FP8): vLLM's recipe for one 8-GPU Blackwell node, log-probabilities like Flash.
+    "deepseek-pro": {"repo": "deepseek-ai/DeepSeek-V4-Pro", "revision": "b5968e9190ef611bbf34a7229255be88a0e937c1",
+                     "volume": "lebrel-watch-reference-pro", "app": "lebrel-watch-reference-pro", "watch_model": "deepseek-v4-pro",
+                     "gpu": "B300:8", "tp": 8, "disk_gb": 1300, "encoding_file": "encoding/encoding_dsv4.py",
+                     "measure_configs": [["--kv-cache-dtype", "fp8", "--tokenizer-mode", "deepseek_v4", "--reasoning-parser", "deepseek_v4",
+                                          "--trust-remote-code", "--distributed-executor-backend", "mp"]]},
     # Z.ai's GLM-5.3 Flash as published (FP8, 62 shards, 328 GB): the lab returns no token probabilities, so this
     # reference is measured by sampling answers (``--action sample``), the way the watch measures the lab's API:
     # the same prompts, the lab's own sampling defaults (generation_config.json: temperature 1.0, top_p 0.95),
     # reasoning effort low as the watch sends it, the first word of every answer counted.
     "glm-flash": {"repo": "zai-org/GLM-5.3-Flash", "revision": "eb9eb208eb0d988989d07a6a12d0fdeb5f52574a",
                   "volume": "lebrel-watch-reference-glm-flash", "app": "lebrel-watch-reference-glm-flash", "watch_model": "glm-5.3-flash",
+                  "gpu": "B300:2", "tp": 2, "disk_gb": 700,
                   "serve": ["--reasoning-parser", "glm47", "--kv-cache-dtype", "fp8", "--max-num-seqs", "256"],
                   "sampling": {"temperature": 1.0, "top_p": 0.95, "reasoning_effort": "low", "max_tokens": 2048}},
+    # Z.ai's GLM-5.3 (756 GB, 141 shards, FP8): tensor parallel 8 on one 8×H200 node, sampled like its API.
+    "glm": {"repo": "zai-org/GLM-5.3", "revision": "aca966e4e02791568aa6a4ced368624b3d897f42",
+            "volume": "lebrel-watch-reference-glm", "app": "lebrel-watch-reference-glm", "watch_model": "glm-5.3",
+            "gpu": "H200:8", "tp": 8, "disk_gb": 1100,
+            "serve": ["--reasoning-parser", "glm47", "--kv-cache-dtype", "fp8", "--max-num-seqs", "256"],
+            "sampling": {"temperature": 1.0, "top_p": 0.95, "reasoning_effort": "low", "max_tokens": 2048}},
+    # Moonshot's Kimi K3 (1.56 TB, 96 shards, MXFP4): tensor parallel 8 on one 8×B300 node; its API accepts only
+    # temperature 1 and top_p 0.95, which the watch sends and this reference uses.
+    "kimi": {"repo": "moonshotai/Kimi-K3", "revision": "f831ab66814297da540d832a5235f8e904f29d06",
+             "volume": "lebrel-watch-reference-kimi", "app": "lebrel-watch-reference-kimi", "watch_model": "kimi-k3",
+             "gpu": "B300:8", "tp": 8, "disk_gb": 2200,
+             "serve": ["--trust-remote-code", "--language-model-only", "--reasoning-parser", "kimi_k3", "--kv-cache-dtype", "fp8", "--max-num-seqs", "128"],
+             # Kimi's own encoder (encoding_k3.py) takes the effort as ``thinking_effort``; Moonshot's API calls it reasoning_effort
+             "sampling": {"temperature": 1.0, "top_p": 0.95, "reasoning_effort": "low", "max_tokens": 2048, "chat_template_kwargs": {"thinking_effort": "low"}}},
 }
 MODEL = os.environ.get("REFERENCE_MODEL", "deepseek-flash")
 SPEC = MODELS[MODEL]
@@ -36,7 +61,8 @@ REPO, REVISION, VOLUME = SPEC["repo"], SPEC["revision"], SPEC["volume"]
 MODEL_DIR = Path("/vol/model")
 LOCAL_MODEL_DIR = Path("/local/model")
 VLLM_IMAGE = os.environ.get("REFERENCE_VLLM_IMAGE", "vllm/vllm-openai:v0.30.0")
-GPU = os.environ.get("REFERENCE_GPU", "B300:2")
+GPU = os.environ.get("REFERENCE_GPU", SPEC.get("gpu", "B300:2"))
+DISK_GB = int(SPEC.get("disk_gb", 700))
 MINUTE = 60
 
 app = modal.App(SPEC["app"])
@@ -45,7 +71,7 @@ weights = modal.Volume.from_name(VOLUME, create_if_missing=True)
 download_image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install("huggingface_hub[hf_transfer]==1.8.0")
-    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1", "REFERENCE_MODEL": MODEL})
+    .env({"HF_HUB_ENABLE_HF_TRANSFER": "1", "REFERENCE_MODEL": MODEL, "REFERENCE_GPU": GPU})
 )
 
 
@@ -56,9 +82,21 @@ def download(repo: str = REPO, revision: str = REVISION) -> dict:
     from huggingface_hub import snapshot_download
 
     started = time.monotonic()
-    if MODEL_DIR.exists():  # one checkpoint per volume, never a mixture
+    existing = {meta.get("commit") for meta in _provenance().values() if meta.get("commit")} if MODEL_DIR.exists() else set()
+    if existing and existing != {revision}:  # one checkpoint per volume, never a mixture; the same revision resumes
         shutil.rmtree(MODEL_DIR)
-    snapshot_download(repo_id=repo, revision=revision, local_dir=str(MODEL_DIR), max_workers=16)
+    attempts = 0
+    while True:  # the volume's filesystem can drop a handle mid-transfer; finished files are kept and the rest resumes
+        attempts += 1
+        try:
+            snapshot_download(repo_id=repo, revision=revision, local_dir=str(MODEL_DIR), max_workers=16)
+            break
+        except OSError as error:
+            weights.commit()
+            if attempts >= 4:
+                raise
+            print(f"download attempt {attempts} failed ({error}); resuming in 30 s", flush=True)
+            time.sleep(30)
     weights.commit()
     files = sorted(p for p in MODEL_DIR.rglob("*") if p.is_file() and ".cache" not in p.parts)
     total = sum(p.stat().st_size for p in files)
@@ -80,7 +118,7 @@ def inventory() -> dict:
 vllm_image = (
     modal.Image.from_registry(VLLM_IMAGE, add_python="3.12")
     .entrypoint([])  # the image's own entrypoint is `vllm`, which would swallow Modal's runner
-    .env({"VLLM_ENGINE_READY_TIMEOUT_S": "3600", "HF_HUB_OFFLINE": "1", "VLLM_LOGGING_LEVEL": "INFO", "REFERENCE_MODEL": MODEL})
+    .env({"VLLM_ENGINE_READY_TIMEOUT_S": "3600", "HF_HUB_OFFLINE": "1", "VLLM_LOGGING_LEVEL": "INFO", "REFERENCE_MODEL": MODEL, "REFERENCE_GPU": GPU})
 )
 SERVER = "http://127.0.0.1:8000"
 LOG = Path("/local/vllm.log")
@@ -140,9 +178,14 @@ def _http(path: str, body: dict | None = None, timeout: float = 600.0) -> dict:
         return json.loads(response.read().decode("utf-8"))
 
 
-def _wait_ready(proc: subprocess.Popen, timeout: int = 75 * MINUTE) -> None:
+def _wait_ready(proc: subprocess.Popen, timeout: int = 6 * 60 * MINUTE, stall: int = 20 * MINUTE) -> None:
+    """Wait for the server. Loading a checkpoint takes as long as it takes (Kimi K3's 96 shards need well over an hour
+    on B300:8), so the wait ends only when the server answers, exits, stops writing its log for ``stall`` seconds, or
+    reaches the hard ``timeout``. A run must never be abandoned while the weights are still loading."""
     import urllib.request
-    deadline = time.monotonic() + timeout
+    started = time.monotonic()
+    deadline = started + timeout
+    last_size, last_change = -1, time.monotonic()
     while time.monotonic() < deadline:
         if proc.poll() is not None:
             raise RuntimeError(f"vllm exited with {proc.returncode}")
@@ -152,8 +195,13 @@ def _wait_ready(proc: subprocess.Popen, timeout: int = 75 * MINUTE) -> None:
                     return
         except Exception:
             pass
+        size = LOG.stat().st_size if LOG.exists() else -1
+        if size != last_size:
+            last_size, last_change = size, time.monotonic()
+        elif time.monotonic() - last_change > stall:
+            raise RuntimeError(f"vllm made no progress for {stall // MINUTE} minutes after {round((time.monotonic() - started) / MINUTE)} minutes")
         time.sleep(5)
-    raise RuntimeError("vllm did not become ready in time")
+    raise RuntimeError(f"vllm did not become ready within {timeout // MINUTE} minutes")
 
 
 def _probe(prompt: dict, top: int, temperature: float) -> dict:
@@ -237,10 +285,10 @@ def _run_pass(step: dict, prompts: list[dict], top: int, temperature: float) -> 
             "filler_errors": sum(1 for f in fillers if f.get("error"))}
 
 
-def _serve_and_measure(extra: list[str], prompts: list[dict], protocol: list[dict], top: int, temperature: float) -> dict:
+def _serve_and_measure(extra: list[str], prompts: list[dict], protocol: list[dict], top: int, temperature: float, tp: int | None = None) -> dict:
     """Launch the server with these flags, run the protocol, stop the server; everything that happened, as a dict."""
     out: dict = {"extra_args": extra}
-    cmd = _server_command(_tp(), top, extra)
+    cmd = _server_command(tp or _tp(), top, extra)
     out["command"] = cmd
     started = time.monotonic()
     if LOG.exists():
@@ -270,16 +318,17 @@ def _serve_and_measure(extra: list[str], prompts: list[dict], protocol: list[dic
     return out
 
 
-@app.function(image=vllm_image, gpu=GPU, cpu=32, memory=(384 * 1024, 768 * 1024), ephemeral_disk=700 * 1024, timeout=4 * 60 * MINUTE,
+@app.function(image=vllm_image, gpu=GPU, cpu=32, memory=(384 * 1024, 768 * 1024), ephemeral_disk=DISK_GB * 1024, timeout=10 * 60 * MINUTE,
               volumes={"/vol": weights})
 def measure(prompts: list[dict], top: int = 100, temperature: float = 1.0, configs: list[list[str]] | None = None,
-            protocol: list[dict] | None = None) -> dict:
+            protocol: list[dict] | None = None, spec: dict | None = None) -> dict:
     """Serve the published weights under each configuration in turn and record the first-word distribution of every
     prompt under the protocol (serial passes, batches of several sizes and orders, a busy server).
     ``prompts`` are {id, ids} as ``prepare.py`` renders them."""
     out: dict = {"image": VLLM_IMAGE, "gpu": GPU, "started_at": time.time(), "top": top, "temperature": temperature}
-    base = ["--engram-config", '{"cpu_offload":true}', "--language-model-only"]
-    configs = configs or [base + ["--enforce-eager"], base]
+    spec = spec or SPEC
+    configs = configs or [list(c) for c in (spec.get("measure_configs") or [[]])]
+    tp = int(spec.get("tp") or _tp())
     protocol = protocol or DEFAULT_PROTOCOL
     out["protocol"] = protocol
     out["gpus"] = _run(["nvidia-smi", "--query-gpu=index,name,memory.total,driver_version", "--format=csv,noheader"]).stdout.strip().splitlines()
@@ -295,7 +344,7 @@ def measure(prompts: list[dict], top: int = 100, temperature: float = 1.0, confi
     if out["copy"]["shards"] == 0:
         out["error"] = "no safetensors shards on the volume"
         return out
-    out["configs"] = [_serve_and_measure(extra, prompts, protocol, top, temperature) for extra in configs]
+    out["configs"] = [_serve_and_measure(extra, prompts, protocol, top, temperature, tp=tp) for extra in configs]
     out["finished_at"] = time.time()
     out["seconds"] = round(out["finished_at"] - out["started_at"], 1)
     # the result also lands on the volume, so a run survives the local client going away
@@ -317,7 +366,10 @@ def _chat(prompt: dict, n: int, params: dict) -> dict:
     started = time.monotonic()
     body = {"model": "reference", "messages": [{"role": "user", "content": prompt["text"]}], "n": n, "stream": False,
             "max_tokens": int(params.get("max_tokens", 2048)), "temperature": float(params.get("temperature", 1.0)), "top_p": float(params.get("top_p", 0.95))}
-    if params.get("reasoning_effort"):
+    # the effort setting reaches the chat template under the name that template uses (reasoning_effort at GLM, thinking_effort at Kimi)
+    if params.get("chat_template_kwargs"):
+        body["chat_template_kwargs"] = dict(params["chat_template_kwargs"])
+    elif params.get("reasoning_effort"):
         body["chat_template_kwargs"] = {"reasoning_effort": params["reasoning_effort"]}
     try:
         document = _http("/v1/chat/completions", body, timeout=1800)
@@ -328,7 +380,8 @@ def _chat(prompt: dict, n: int, params: dict) -> dict:
         message = choice.get("message") or {}
         content = message.get("content") if isinstance(message.get("content"), str) else None
         answers.append({"first": content[:ANSWER_PREFIX_CHARS] if content is not None else None, "chars": len(content) if content is not None else None,
-                        "reasoning": bool(message.get("reasoning_content")), "finish": choice.get("finish_reason")})
+                        "reasoning": bool(message.get("reasoning_content") or message.get("reasoning")),
+                        "reasoning_chars": len(message.get("reasoning_content") or message.get("reasoning") or ""), "finish": choice.get("finish_reason")})
     usage = document.get("usage") or {}
     return {"id": prompt["id"], "prompt_tokens": usage.get("prompt_tokens"), "completion_tokens": usage.get("completion_tokens"),
             "answers": answers, "latency_s": round(time.monotonic() - started, 3)}
@@ -350,7 +403,7 @@ def _sample_pass(index: int, prompts: list[dict], n: int, params: dict, concurre
             "errors": sum(1 for r in results if r.get("error"))}
 
 
-@app.function(image=vllm_image, gpu=GPU, cpu=32, memory=(384 * 1024, 768 * 1024), ephemeral_disk=700 * 1024, timeout=4 * 60 * MINUTE,
+@app.function(image=vllm_image, gpu=GPU, cpu=32, memory=(384 * 1024, 768 * 1024), ephemeral_disk=DISK_GB * 1024, timeout=10 * 60 * MINUTE,
               volumes={"/vol": weights})
 def sample(prompts: list[dict], spec: dict, n: int = 32, passes: int = 2, params: dict | None = None, extra: list[str] | None = None,
            concurrency: int = 16) -> dict:
@@ -369,7 +422,7 @@ def sample(prompts: list[dict], spec: dict, n: int = 32, passes: int = 2, params
     if out["copy"]["shards"] == 0:
         out["error"] = "no safetensors shards on the volume"
         return out
-    cmd = _server_command(_tp(), 1, extra)
+    cmd = _server_command(int(spec.get("tp") or _tp()), 1, extra)
     out["command"] = cmd
     started = time.monotonic()
     if LOG.exists():
@@ -415,12 +468,13 @@ def _prompt_texts(path: Path) -> list[dict]:
 
 @app.local_entrypoint()
 def main(action: str = "inventory", prompts: str = "", out: str = "", top: int = 100, temperature: float = 1.0,
-         configs: str = "", protocol: str = "", n: int = 32, passes: int = 2):
+         configs: str = "", protocol: str = "", n: int = 32, passes: int = 2, extra: str = "", params: str = ""):
     if action == "download":
         print(json.dumps(download.remote(REPO, REVISION), indent=1))
     elif action == "sample":
         rendered = _prompt_texts(Path(prompts))
-        result = sample.remote(rendered, SPEC, n=n, passes=passes)
+        # --extra: serving flags replacing the spec's (a second configuration of the same weights); --params: sampling overrides
+        result = sample.remote(rendered, SPEC, n=n, passes=passes, extra=json.loads(extra) if extra else None, params=json.loads(params) if params else None)
         result["prompt_ids"] = [p["id"] for p in rendered]
         target = Path(out or f"runs-reference/{result.get('result_id') or time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-sampled.json")
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -432,7 +486,7 @@ def main(action: str = "inventory", prompts: str = "", out: str = "", top: int =
         document = json.loads(Path(prompts).read_text())
         rendered = [{"id": p["id"], "ids": p["ids"]} for p in document["prompts"]]
         result = measure.remote(rendered, top=top, temperature=temperature, configs=json.loads(configs) if configs else None,
-                                protocol=json.loads(protocol) if protocol else None)
+                                protocol=json.loads(protocol) if protocol else None, spec=SPEC)
         result["prompts_document"] = {k: v for k, v in document.items() if k != "prompts"}
         result["prompt_ids"] = [p["id"] for p in rendered]
         target = Path(out or f"runs-reference/{result.get('result_id') or time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}.json")

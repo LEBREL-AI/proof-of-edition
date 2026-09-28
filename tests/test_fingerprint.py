@@ -130,6 +130,25 @@ class SecretSetTests(unittest.TestCase):
 
 
 class ProbeTests(unittest.TestCase):
+    def test_probe_waits_for_the_rate_limit_window_then_succeeds(self):
+        import urllib.error
+        from email.message import Message
+        limited = Message()
+        limited["Retry-After"] = "60"
+        calls = {"n": 0}
+
+        def respond(request):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise urllib.error.HTTPError("u", 429, "rate limited", limited, None)
+            return FakeResponse(json.dumps({"choices": [{"message": {"content": "A"}, "logprobs": {"content": [{"token": "A", "logprob": -0.1,
+                                            "top_logprobs": [{"token": "A", "logprob": -0.1, "bytes": [65]}]}]}}]}).encode())
+        waited = []
+        result = fp.probe_once(target("x"), "pub-00", "hello", opener=FakeOpener(respond), sleep=waited.append)
+        self.assertEqual(result.status, 200)
+        self.assertIsNone(result.error)
+        self.assertEqual(waited, [60.0], "the window the server named, not a two-second backoff")
+
     def test_request_shape_and_extraction(self):
         seen = {}
 
@@ -245,6 +264,31 @@ class RunAndBoardTests(unittest.TestCase):
                 self.assertEqual(lab["fingerprint"]["reference"]["checkpoint"]["revision"], "abc")
                 self.assertEqual(lab["status"], expected)
                 self.assertEqual(with_reference["references"]["m"]["run_id"], "ref-1")
+            # A six-hourly anchor is absent from most hourly runs: an hour later only the route ran, and the
+            # anchor's row, carried from its own newest run, still says what the published weights said.
+            newest = sorted(p for p in (root / "fp").iterdir() if p.is_dir())[-1]
+            later = root / "fp" / (newest.name + "-later")
+            later.mkdir()
+            metadata = json.loads((newest / "run.json").read_text())
+            metadata.update({"run_id": metadata["run_id"] + "-later", "started_at": float(metadata["started_at"]) + 3600, "finished_at": float(metadata["finished_at"]) + 3600})
+            summary = json.loads((newest / "summary.json").read_text())
+            del summary["lab"]
+            (later / "run.json").write_text(json.dumps(metadata))
+            (later / "summary.json").write_text(json.dumps(summary))
+            carried = build_board(root / "runs", fingerprints_dir=root / "fp", reference_dir=reference_dir, now=base + 3 * 3600 + 100.0)
+            lab = {e["target"]: e for e in carried["entries"]}["lab"]
+            self.assertEqual(lab["fingerprint"]["run_id"], json.loads((newest / "run.json").read_text())["run_id"], "the anchor's row is its own newest run")
+            self.assertEqual(lab["fingerprint"]["reference"]["verdict"], "outside_margin", "the reference verdict does not depend on the anchor having run this hour")
+            self.assertEqual(lab["fingerprint"]["model"], "m")
+            # A target removed from the watch (the later run's `configured` list no longer names it) leaves the
+            # board at once, however many earlier runs still hold its rows; a six-hourly anchor stays.
+            metadata["configured"] = [name for name in metadata["configured"] if name != "fp8-host"] if metadata.get("configured") else ["lab", "route", "near-host"]
+            (later / "run.json").write_text(json.dumps(metadata))
+            without = build_board(root / "runs", fingerprints_dir=root / "fp", reference_dir=reference_dir, now=base + 3 * 3600 + 100.0)
+            names = {e["target"] for e in without["entries"] if e.get("fingerprint")}
+            self.assertNotIn("fp8-host", names)
+            self.assertIn("lab", names)
+            self.assertIn("route", names)
 
     def test_failed_receipt_is_divergent_and_severity_wins(self):
         with tempfile.TemporaryDirectory() as tmp:
